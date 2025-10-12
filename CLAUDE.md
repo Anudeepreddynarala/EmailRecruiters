@@ -15,8 +15,11 @@ Active development. Core job analysis feature is implemented and functional.
 - **Job Posting Analysis**: Fetches and parses job postings from any URL using Jina AI
 - **AI-Powered Role Suggestions**: Uses Google Gemini to suggest relevant contacts to reach out to
 - **Company Domain Discovery**: Extracts/infers company domain and LinkedIn URL for easy contact searches
-- **Database Storage**: SQLAlchemy-based storage for analyzed jobs and suggested roles
-- **CLI Interface**: Command-line tool for easy job analysis
+- **Apollo.io Integration**: Search for actual contacts at companies using Apollo.io's people search API
+- **Email Enrichment**: Automatically unlock real email addresses for top N most relevant contacts
+- **Contact Management**: Save and track contacts with status and notes in database
+- **Database Storage**: SQLAlchemy-based storage for analyzed jobs, suggested roles, and contacts
+- **CLI Interface**: Command-line tool for easy job analysis and contact search
 
 ## Development Setup
 
@@ -40,6 +43,7 @@ pip install -r requirements.txt
 The following API keys are required (stored in `.env`):
 - `JINA_API_KEY` - For web scraping via Jina AI Reader API
 - `GEMINI_API_KEY` - For AI-powered role analysis via Google Gemini
+- `APOLLO_API_KEY` - (Optional) For finding contacts via Apollo.io API
 
 ### Running the CLI
 
@@ -67,13 +71,15 @@ python test_basic.py
 src/email_recruiters/
 ├── core/
 │   ├── job_scraper.py      # Jina AI integration for fetching job postings
-│   └── role_analyzer.py     # Gemini AI integration for role suggestions
+│   ├── role_analyzer.py     # Gemini AI integration for role suggestions
+│   └── apollo_search.py     # Apollo.io integration for finding contacts
 ├── database/
 │   ├── models.py           # SQLAlchemy models (AnalyzedJob, SuggestedRole, Contact)
 │   └── db.py               # Database utilities and session management
 ├── cli/
 │   ├── main.py             # CLI entry point
-│   └── analyze.py          # Analyze command implementation
+│   ├── analyze.py          # Analyze command implementation
+│   └── search_contacts.py  # Search contacts command
 ├── templates/              # Future: Email templates
 └── mcp/                    # Future: MCP integration
 ```
@@ -86,27 +92,48 @@ src/email_recruiters/
    - Supports all major job boards (LinkedIn, Indeed, Greenhouse, Lever, etc.)
 
 2. **RoleAnalyzer** (`core/role_analyzer.py`)
-   - Uses Google Gemini (gemini-1.5-flash) for fast analysis
+   - Uses Google Gemini (gemini-2.5-pro) for fast analysis
    - Analyzes job description to suggest 5-7 relevant contact roles
    - Returns prioritized list with search keywords and reasoning
 
-3. **Database** (`database/`)
+3. **ApolloClient** (`core/apollo_search.py`)
+   - Integrates with Apollo.io People Search API
+   - Searches for contacts by company domain and job titles
+   - Returns contact details: name, email, LinkedIn URL, title
+   - Can search based on suggested roles from RoleAnalyzer
+   - Email enrichment: unlocks real email addresses for top N contacts using Apollo.io enrichment API
+   - Prioritizes contacts by role relevance to save API credits
+
+4. **Database** (`database/`)
    - SQLite database at `~/.email_recruiters/data.db`
    - Models: AnalyzedJob, SuggestedRole, Contact
-   - Tracks all analyzed jobs for future reference
+   - Tracks all analyzed jobs and found contacts
 
-4. **CLI** (`cli/`)
+5. **CLI** (`cli/`)
    - Built with Click framework
-   - Main command: `analyze <job_url>`
-   - Options: `--format json`, `--no-save`
+   - Main commands: `analyze <job_url>`, `search-contacts`
+   - Analyze options: `--format json`, `--no-save`, `--search-apollo`, `--max-contacts-per-role`, `--enrich-emails`
+   - Search options: `--job-id`, `--domain`, `--title`, `--save`, `--enrich-emails`
 
 ### Data Flow
 
+**Job Analysis Flow:**
 1. User provides job URL
 2. JobScraper fetches content via Jina AI
 3. RoleAnalyzer sends to Gemini for analysis
-4. Results displayed to user
-5. Data saved to SQLite database (optional)
+4. Gemini returns suggested roles with keywords
+5. Results displayed to user
+6. Data saved to SQLite database (optional)
+
+**Apollo.io Contact Search Flow:**
+1. User enables `--search-apollo` flag (or uses `search-contacts` command)
+2. ApolloClient uses company domain from job analysis
+3. Searches Apollo.io for people matching suggested role titles
+4. Identifies top N contacts based on role priority (default: 5)
+5. Enriches top contacts to unlock real email addresses via Apollo.io enrichment API
+6. Returns contact details (name, email, LinkedIn, title)
+7. Contacts displayed to user
+8. Contacts saved to database (optional, linked to job)
 
 ### Dependencies
 
@@ -178,7 +205,9 @@ Always commit documentation updates immediately after feature commits.
 
 ## Notes for Future Development
 
-- MCP integration planned for people finder functionality
 - Email template system to be added
-- Contact management features planned
 - Campaign tracking to be implemented
+- Contact status workflow (new -> contacted -> responded)
+- Email sending integration
+- Bulk contact search and management
+- Analytics and reporting features

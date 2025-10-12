@@ -5,6 +5,7 @@ Main CLI entry point for email-recruiters.
 import click
 from dotenv import load_dotenv
 from .analyze import analyze
+from .search_contacts import search_contacts
 
 # Load environment variables
 load_dotenv()
@@ -23,6 +24,7 @@ def cli():
 
 # Register commands
 cli.add_command(analyze)
+cli.add_command(search_contacts)
 
 
 if __name__ == "__main__":

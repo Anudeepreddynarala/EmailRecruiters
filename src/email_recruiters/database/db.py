@@ -177,3 +177,72 @@ def save_analyzed_job(
 
         session.commit()
         return job.id
+
+
+def save_contacts(
+    job_id: int,
+    contacts: list,
+    db: Optional[Database] = None
+) -> int:
+    """
+    Save contacts from Apollo.io to the database.
+
+    Args:
+        job_id: ID of the job these contacts are associated with
+        contacts: List of ApolloContact objects
+        db: Optional Database instance
+
+    Returns:
+        Number of contacts saved
+    """
+    from .models import Contact
+
+    if db is None:
+        db = get_database()
+
+    saved_count = 0
+
+    with db.session() as session:
+        for contact in contacts:
+            # Check if contact already exists (by email or LinkedIn URL)
+            existing_contact = None
+
+            if contact.email:
+                existing_contact = session.query(Contact).filter_by(
+                    email=contact.email,
+                    job_id=job_id
+                ).first()
+
+            if not existing_contact and contact.linkedin_url:
+                existing_contact = session.query(Contact).filter_by(
+                    linkedin_url=contact.linkedin_url,
+                    job_id=job_id
+                ).first()
+
+            if existing_contact:
+                # Update existing contact
+                existing_contact.name = contact.name
+                existing_contact.title = contact.title
+                existing_contact.company = contact.company
+                if not existing_contact.email and contact.email:
+                    existing_contact.email = contact.email
+                if not existing_contact.linkedin_url and contact.linkedin_url:
+                    existing_contact.linkedin_url = contact.linkedin_url
+            else:
+                # Create new contact
+                new_contact = Contact(
+                    job_id=job_id,
+                    name=contact.name,
+                    email=contact.email,
+                    title=contact.title,
+                    company=contact.company,
+                    linkedin_url=contact.linkedin_url,
+                    source="apollo",
+                    status="new"
+                )
+                session.add(new_contact)
+                saved_count += 1
+
+        session.commit()
+
+    return saved_count

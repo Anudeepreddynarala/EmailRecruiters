@@ -7,7 +7,10 @@ A tool for analyzing job postings and identifying relevant roles to contact for 
 - **Job Posting Analysis**: Fetches and parses job postings from any URL using Jina AI
 - **AI-Powered Role Suggestions**: Uses Google Gemini to suggest relevant contacts to reach out to
 - **Company Domain Discovery**: Automatically extracts company domain and LinkedIn URL for easy searches
-- **Database Storage**: Saves analyzed jobs for future reference
+- **Apollo.io Integration**: Find actual contacts at companies using Apollo.io's people search API
+- **Email Enrichment**: Automatically unlock real email addresses for top 5 most relevant contacts
+- **Contact Management**: Save and track contacts in local database
+- **Database Storage**: Saves analyzed jobs and contacts for future reference
 - **CLI Interface**: Easy-to-use command-line tool
 
 ## Setup
@@ -31,8 +34,9 @@ pip install -r requirements.txt
 The project uses:
 - **Jina AI** for web scraping and HTML parsing
 - **Google Gemini** for AI-powered role analysis
+- **Apollo.io** (optional) for finding actual contacts at companies
 
-API keys are already configured in the `.env` file.
+API keys are configured in the `.env` file. The Apollo.io integration is optional - you can still use the tool without it for job analysis and role suggestions.
 
 ## Usage
 
@@ -117,12 +121,73 @@ Saved successfully! Job ID: 1
 
 - `--no-save`: Don't save the analysis to the database
 - `--format json`: Output results in JSON format instead of text
+- `--search-apollo`: Automatically search for contacts on Apollo.io
+- `--max-contacts-per-role N`: Maximum contacts to find per role (default: 3)
+- `--enrich-emails N`: Number of top contacts to enrich/unlock emails (default: 5)
 
-**Example:**
+**Examples:**
 
 ```bash
-./run_cli.sh analyze https://example.com/job --format json --no-save
+# Basic analysis without Apollo.io
+./run_cli.sh analyze https://example.com/job
+
+# Analysis with Apollo.io contact search (emails enriched automatically for top 5)
+./run_cli.sh analyze https://example.com/job --search-apollo
+
+# Search with custom enrichment (unlock top 3 emails)
+./run_cli.sh analyze https://example.com/job --search-apollo --enrich-emails 3
+
+# No email enrichment (save credits)
+./run_cli.sh analyze https://example.com/job --search-apollo --enrich-emails 0
+
+# JSON output, no save, with Apollo.io search
+./run_cli.sh analyze https://example.com/job --format json --no-save --search-apollo
 ```
+
+**Email Enrichment:**
+
+By default, when using `--search-apollo`, the tool automatically enriches the top 5 most relevant contacts to unlock their real email addresses. This:
+- Prioritizes contacts based on role relevance (e.g., hiring managers first)
+- Saves API credits by only enriching the most important contacts
+- Gives you actionable email addresses to start your outreach immediately
+
+### Search for Contacts
+
+Use the `search-contacts` command to find contacts on Apollo.io:
+
+**Search by saved job ID:**
+
+```bash
+./run_cli.sh search-contacts --job-id 1
+```
+
+**Manual search by domain and titles:**
+
+```bash
+./run_cli.sh search-contacts --domain acmecorp.com --title "Engineering Manager" --title "VP Engineering"
+```
+
+**Search and save contacts to database:**
+
+```bash
+./run_cli.sh search-contacts --job-id 1 --save
+```
+
+**Control email enrichment:**
+
+```bash
+# Enrich top 3 contacts only
+./run_cli.sh search-contacts --job-id 1 --enrich-emails 3
+
+# No email enrichment
+./run_cli.sh search-contacts --domain acmecorp.com --title "Director" --enrich-emails 0
+```
+
+This will:
+1. Search Apollo.io for people matching the suggested roles
+2. Enrich top N contacts to unlock real email addresses (default: 5)
+3. Display contact information (name, title, email, LinkedIn)
+4. Optionally save contacts to the database for tracking
 
 ## Project Structure
 
@@ -132,13 +197,15 @@ EmailRecruiters/
 │   └── email_recruiters/
 │       ├── core/
 │       │   ├── job_scraper.py      # Jina AI integration
-│       │   └── role_analyzer.py     # Gemini AI integration
+│       │   ├── role_analyzer.py     # Gemini AI integration
+│       │   └── apollo_search.py     # Apollo.io integration
 │       ├── database/
 │       │   ├── models.py           # SQLAlchemy models
 │       │   └── db.py               # Database utilities
 │       └── cli/
 │           ├── main.py             # CLI entry point
-│           └── analyze.py          # Analyze command
+│           ├── analyze.py          # Analyze command
+│           └── search_contacts.py  # Search contacts command
 ├── .env                            # API keys (gitignored)
 ├── requirements.txt                # Dependencies
 ├── run_cli.sh                      # CLI wrapper script
