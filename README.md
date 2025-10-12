@@ -6,6 +6,7 @@ A tool for analyzing job postings and identifying relevant roles to contact for 
 
 - **Job Posting Analysis**: Fetches and parses job postings from any URL using Jina AI
 - **AI-Powered Role Suggestions**: Uses Google Gemini to suggest relevant contacts to reach out to
+- **Company Domain Discovery**: Automatically extracts company domain and LinkedIn URL for easy searches
 - **Database Storage**: Saves analyzed jobs for future reference
 - **CLI Interface**: Easy-to-use command-line tool
 
@@ -51,18 +52,20 @@ Use the `analyze` command to fetch and analyze a job posting:
 
 This will:
 1. Fetch the job posting using Jina AI
-2. Extract key information (title, company, location, description)
+2. Extract key information (title, company, location, domain, description)
 3. Analyze the job with Gemini to suggest relevant contacts
 4. Display prioritized list of roles to reach out to
-5. Save the analysis to the database
+5. Provide search tips with company domain for Apollo/LinkedIn
+6. Save the analysis to the database
 
 ### Output Format
 
 The tool provides:
-- **Job Information**: Title, company, location
+- **Job Information**: Title, company, location, domain, LinkedIn URL
 - **Suggested Contacts**: Prioritized list (1-7) of roles to contact
 - **Search Keywords**: Keywords to use when searching for these roles on LinkedIn/Apollo
 - **Reasoning**: Why each role is relevant
+- **Search Tips**: How to use the company domain for Apollo/LinkedIn searches
 
 **Example Output:**
 
@@ -70,6 +73,8 @@ The tool provides:
 ================================================================================
 Job Title: Senior Backend Engineer
 Company: Acme Corp
+Domain: acmecorp.com
+LinkedIn: https://linkedin.com/company/acme-corp
 Location: San Francisco, CA
 URL: https://www.linkedin.com/jobs/view/123456789
 ================================================================================
@@ -97,6 +102,13 @@ Suggested Contacts (in priority order):
 5. Senior Engineering Manager
    Keywords: Senior Engineering Manager, Staff Engineer Manager
    Reasoning: May be involved in senior engineering hiring decisions
+
+================================================================================
+Search Tips:
+  On Apollo/LinkedIn, filter by domain: @acmecorp.com
+  Example search: "Engineering Manager @acmecorp.com"
+  LinkedIn company page: https://linkedin.com/company/acme-corp
+================================================================================
 
 Saved successfully! Job ID: 1
 ```

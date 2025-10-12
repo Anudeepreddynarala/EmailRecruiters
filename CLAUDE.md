@@ -14,6 +14,7 @@ Active development. Core job analysis feature is implemented and functional.
 
 - **Job Posting Analysis**: Fetches and parses job postings from any URL using Jina AI
 - **AI-Powered Role Suggestions**: Uses Google Gemini to suggest relevant contacts to reach out to
+- **Company Domain Discovery**: Extracts/infers company domain and LinkedIn URL for easy contact searches
 - **Database Storage**: SQLAlchemy-based storage for analyzed jobs and suggested roles
 - **CLI Interface**: Command-line tool for easy job analysis
 

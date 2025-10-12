@@ -41,6 +41,8 @@ For each job posting, the tool provides:
 ### 1. Basic Job Information
 - Job title
 - Company name
+- Company domain (for Apollo/LinkedIn searches)
+- LinkedIn company page URL
 - Location (including remote/hybrid)
 - Direct link to the posting
 
@@ -74,7 +76,15 @@ The tool analyzes the job and suggests 5-7 relevant roles to contact, such as:
 - CMO
 - Marketing Recruiter
 
-### 3. Search Keywords
+### 3. Company Domain & LinkedIn
+
+The tool automatically extracts or infers:
+- **Company domain** (e.g., `observeinc.com`) for filtering searches
+- **LinkedIn company page** (e.g., `linkedin.com/company/observe-inc`)
+
+This makes it easy to filter by company when searching for contacts on Apollo or LinkedIn Sales Navigator.
+
+### 4. Search Keywords
 
 For each suggested role, you get optimized keywords to use when searching on:
 - LinkedIn
@@ -82,7 +92,7 @@ For each suggested role, you get optimized keywords to use when searching on:
 - ZoomInfo
 - Company websites
 
-### 4. Reasoning
+### 5. Reasoning
 
 Understanding WHY each role is suggested helps you:
 - Prioritize your outreach
@@ -112,13 +122,21 @@ Take the suggested roles and keywords and search for contacts:
 
 **On LinkedIn:**
 1. Go to LinkedIn Search
-2. Use filters: Company + Role keywords
-3. Find 2nd and 3rd connections for warm intros
+2. Use the company domain filter: `@company.com`
+3. Search for role titles: `"Product Manager @observeinc.com"`
+4. Find 2nd and 3rd connections for warm intros
 
 **On Apollo.io:**
-1. Search by company and title keywords
-2. Get verified email addresses
-3. Export contact list
+1. Use the company domain to filter: `@observeinc.com`
+2. Search by title keywords from the tool
+3. Get verified email addresses
+4. Export contact list
+
+**Example Search:**
+```
+"Engineering Manager @observeinc.com"
+"Senior Product Manager @observeinc.com"
+```
 
 ### Step 4: Reach Out
 
