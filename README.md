@@ -10,6 +10,7 @@ A tool for analyzing job postings and identifying relevant roles to contact for 
 - **Apollo.io Integration**: Find actual contacts at companies using Apollo.io's people search API
 - **Email Enrichment**: Automatically unlock real email addresses for top 5 most relevant contacts
 - **Sequence Integration**: Automatically add contacts to Apollo.io email sequences for outreach campaigns
+- **Email Personalization**: Automatically set contact name and job title for personalized emails
 - **Contact Management**: Save and track contacts in local database
 - **Database Storage**: Saves analyzed jobs and contacts for future reference
 - **CLI Interface**: Easy-to-use command-line tool
@@ -220,6 +221,55 @@ Automatically add found contacts to Apollo.io email sequences for automated outr
 4. Run the analyze command with `--add-to-sequence` flag
 
 This ensures you can review contacts before starting any outreach campaign.
+
+### Email Personalization
+
+EmailRecruiters automatically personalizes your emails by setting custom fields for each contact.
+
+**What gets personalized:**
+- Contact's first name ({{first_name}})
+- Job title they're applying for ({{custom.applied_role}})
+
+**One-Time Setup:**
+
+1. Create a custom field in Apollo.io:
+   - Go to Settings → Custom Fields
+   - Create Contact Custom Field
+   - Name: `Applied Role`
+   - Type: Text
+
+2. Use in your sequence template:
+   ```
+   Hi {{first_name}},
+
+   I noticed you're hiring for a {{custom.applied_role}} at {{company}}.
+
+   I'm very interested in this {{custom.applied_role}} opportunity...
+   ```
+
+**How it works:**
+
+When you add contacts to a sequence, the tool automatically:
+1. Extracts the job title from the posting (e.g., "Senior Software Engineer")
+2. Updates each contact's "Applied Role" custom field with that title
+3. Shows you the personalization variables to use
+
+**Example:**
+```bash
+./run_cli.sh analyze <job_url> --search-apollo --add-to-sequence "Sequence Name"
+```
+
+Output will include:
+```
+✓ Updated 15/15 contacts with job title: 'Senior Software Engineer'
+  (You can now use {{first_name}} and {{custom.applied_role}} in your sequence emails)
+
+Email personalization:
+  - Use {{first_name}} for the contact's first name
+  - Use {{custom.applied_role}} for the job title: 'Senior Software Engineer'
+```
+
+📖 **See [PERSONALIZATION.md](PERSONALIZATION.md) for complete guide with examples**
 
 ### Batch Processing Multiple Jobs
 

@@ -221,6 +221,25 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
                         else:
                             sequence_id = sequence.get("id")
                             click.echo(f"Found sequence: {sequence.get('name')} (ID: {sequence_id})")
+                            click.echo()
+
+                            # Update contacts with job title for personalization
+                            click.echo("Updating contacts with job title for email personalization...")
+                            updated_count = 0
+                            for contact in all_contacts:
+                                if contact.person_id and job.title:
+                                    if apollo_client.update_contact_with_job_title(contact.person_id, job.title):
+                                        updated_count += 1
+
+                            if updated_count > 0:
+                                click.echo(f"✓ Updated {updated_count}/{len(all_contacts)} contacts with job title: '{job.title}'")
+                                click.echo("  (You can now use {{first_name}} and {{custom.applied_role}} in your sequence emails)")
+                            else:
+                                click.echo("⚠ Warning: Could not update contacts with job title.")
+                                click.echo("  Make sure you have created a custom field named 'Applied Role' in Apollo.io")
+                                click.echo("  (Settings -> Custom Fields -> Create Contact Custom Field)")
+
+                            click.echo()
 
                             # Add contacts to sequence
                             result = apollo_client.add_contacts_to_sequence(
@@ -236,6 +255,10 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
                             click.echo(f"  1. Log into Apollo.io")
                             click.echo(f"  2. Go to Sequences -> '{add_to_sequence}'")
                             click.echo(f"  3. Review contacts and manually start/resume the sequence")
+                            click.echo()
+                            click.echo("Email personalization:")
+                            click.echo(f"  - Use {{{{first_name}}}} for the contact's first name")
+                            click.echo(f"  - Use {{{{custom.applied_role}}}} for the job title: '{job.title}'")
 
                     except Exception as e:
                         click.echo(f"Error adding contacts to sequence: {str(e)}", err=True)

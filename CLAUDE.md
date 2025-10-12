@@ -18,6 +18,7 @@ Active development. Core job analysis feature is implemented and functional.
 - **Apollo.io Integration**: Search for actual contacts at companies using Apollo.io's people search API
 - **Email Enrichment**: Automatically unlock real email addresses for top N most relevant contacts
 - **Sequence Integration**: Add contacts to Apollo.io sequences for automated outreach (staging only, manual start required)
+- **Email Personalization**: Automatically populate custom fields (contact name, job title) for personalized emails
 - **Contact Management**: Save and track contacts with status and notes in database
 - **Database Storage**: SQLAlchemy-based storage for analyzed jobs, suggested roles, and contacts
 - **CLI Interface**: Command-line tool for easy job analysis and contact search
@@ -104,6 +105,8 @@ src/email_recruiters/
    - Can search based on suggested roles from RoleAnalyzer
    - Email enrichment: unlocks real email addresses for top N contacts using Apollo.io enrichment API
    - Prioritizes contacts by role relevance to save API credits
+   - Custom fields: updates contacts with job title for email personalization
+   - Sequences: adds contacts to sequences and updates custom fields
 
 4. **Database** (`database/`)
    - SQLite database at `~/.email_recruiters/data.db`
@@ -141,9 +144,11 @@ src/email_recruiters/
 1. User adds `--add-to-sequence "Sequence Name"` flag
 2. After contacts are found and enriched, user is prompted for confirmation
 3. ApolloClient finds sequence by name using sequences API
-4. Contacts are added to the sequence (staged, NOT started)
-5. User must manually review and start sequence in Apollo.io UI
-6. Requires master API key and email account configuration in sequence
+4. **Each contact is updated with job title in "Applied Role" custom field for personalization**
+5. Contacts are added to the sequence (staged, NOT started)
+6. User can use {{first_name}} and {{custom.applied_role}} variables in sequence emails
+7. User must manually review and start sequence in Apollo.io UI
+8. Requires master API key and email account configuration in sequence
 
 ### Dependencies
 

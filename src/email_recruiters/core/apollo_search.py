@@ -43,6 +43,8 @@ class ApolloClient:
     PEOPLE_ENRICHMENT_ENDPOINT = "/api/v1/people/match"
     SEQUENCES_SEARCH_ENDPOINT = "/api/v1/emailer_campaigns/search"
     SEQUENCES_ADD_CONTACTS_ENDPOINT = "/api/v1/emailer_campaigns/{sequence_id}/add_contact_ids"
+    CUSTOM_FIELDS_ENDPOINT = "/api/v1/typed_custom_fields"
+    UPDATE_CONTACT_ENDPOINT = "/api/v1/contacts/{contact_id}"
 
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -464,6 +466,143 @@ class ApolloClient:
             if seq.get("name", "").lower() == name.lower():
                 return seq
         return None
+
+    def get_custom_fields(self) -> List[Dict[str, Any]]:
+        """
+        Get list of all custom fields in Apollo.io account.
+
+        Returns:
+            List of custom field dictionaries with id, name, type, etc.
+
+        Raises:
+            Exception: If the API call fails
+        """
+        url = f"{self.API_BASE_URL}{self.CUSTOM_FIELDS_ENDPOINT}"
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("typed_custom_fields", [])
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                raise Exception(
+                    "403 Forbidden: Custom fields API requires a master API key."
+                )
+            raise Exception(f"Apollo.io custom fields API error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to get custom fields: {str(e)}")
+
+    def find_custom_field_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a custom field by its name.
+
+        Args:
+            name: The name of the custom field to find
+
+        Returns:
+            Custom field dictionary if found, None otherwise
+        """
+        custom_fields = self.get_custom_fields()
+        for field in custom_fields:
+            if field.get("name", "").lower() == name.lower():
+                return field
+        return None
+
+    def update_contact(
+        self,
+        contact_id: str,
+        custom_fields: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Update a contact with custom field values.
+
+        Args:
+            contact_id: Apollo.io contact ID
+            custom_fields: Dictionary of custom field ID -> value pairs
+            **kwargs: Additional contact fields to update
+
+        Returns:
+            Updated contact data
+
+        Raises:
+            Exception: If the API call fails
+        """
+        url = f"{self.API_BASE_URL}{self.UPDATE_CONTACT_ENDPOINT.format(contact_id=contact_id)}"
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.api_key
+        }
+
+        payload = {}
+
+        # Add custom fields if provided
+        if custom_fields:
+            payload["typed_custom_fields"] = custom_fields
+
+        # Add any additional fields
+        payload.update(kwargs)
+
+        try:
+            response = requests.patch(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                raise Exception(
+                    "403 Forbidden: Update contact API requires a master API key."
+                )
+            raise Exception(f"Apollo.io update contact error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to update contact: {str(e)}")
+
+    def update_contact_with_job_title(
+        self,
+        contact_id: str,
+        job_title: str,
+        custom_field_name: str = "Applied Role"
+    ) -> bool:
+        """
+        Update a contact with the job title they're applying for.
+
+        Args:
+            contact_id: Apollo.io contact ID
+            job_title: The job title to set
+            custom_field_name: Name of the custom field to use (default: "Applied Role")
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Find the custom field
+            custom_field = self.find_custom_field_by_name(custom_field_name)
+
+            if not custom_field:
+                print(f"Warning: Custom field '{custom_field_name}' not found. Please create it in Apollo.io first.")
+                return False
+
+            field_id = custom_field.get("id")
+
+            # Update the contact
+            self.update_contact(
+                contact_id=contact_id,
+                custom_fields={field_id: job_title}
+            )
+
+            return True
+
+        except Exception as e:
+            print(f"Warning: Failed to update contact {contact_id} with job title: {str(e)}")
+            return False
 
 
 def search_contacts(
