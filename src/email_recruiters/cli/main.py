@@ -6,6 +6,7 @@ import click
 from dotenv import load_dotenv
 from .analyze import analyze
 from .search_contacts import search_contacts
+from .list_sequences import list_sequences
 
 # Load environment variables
 load_dotenv()
@@ -25,6 +26,7 @@ def cli():
 # Register commands
 cli.add_command(analyze)
 cli.add_command(search_contacts)
+cli.add_command(list_sequences)
 
 
 if __name__ == "__main__":

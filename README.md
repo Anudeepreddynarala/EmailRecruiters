@@ -9,6 +9,7 @@ A tool for analyzing job postings and identifying relevant roles to contact for 
 - **Company Domain Discovery**: Automatically extracts company domain and LinkedIn URL for easy searches
 - **Apollo.io Integration**: Find actual contacts at companies using Apollo.io's people search API
 - **Email Enrichment**: Automatically unlock real email addresses for top 5 most relevant contacts
+- **Sequence Integration**: Automatically add contacts to Apollo.io email sequences for outreach campaigns
 - **Contact Management**: Save and track contacts in local database
 - **Database Storage**: Saves analyzed jobs and contacts for future reference
 - **CLI Interface**: Easy-to-use command-line tool
@@ -189,6 +190,79 @@ This will:
 3. Display contact information (name, title, email, LinkedIn)
 4. Optionally save contacts to the database for tracking
 
+### Add Contacts to Sequences
+
+Automatically add found contacts to Apollo.io email sequences for automated outreach campaigns.
+
+**List available sequences:**
+
+```bash
+./run_cli.sh list-sequences
+```
+
+**Add contacts to a sequence during analysis:**
+
+```bash
+./run_cli.sh analyze <job_url> --search-apollo --add-to-sequence "Test auto sequencing"
+```
+
+**IMPORTANT SAFETY NOTES:**
+- This ONLY adds contacts to the sequence (staging them)
+- It does NOT automatically start the campaign
+- You must manually review and start the sequence in Apollo.io UI
+- Requires a **master API key** (not regular API key)
+- Requires email account configuration in the sequence
+
+**Setup Requirements:**
+1. Create a master API key in Apollo.io (Settings -> API)
+2. Create your sequence in Apollo.io web interface
+3. Configure a sending email account for the sequence
+4. Run the analyze command with `--add-to-sequence` flag
+
+This ensures you can review contacts before starting any outreach campaign.
+
+### Batch Processing Multiple Jobs
+
+Process multiple job URLs automatically and add all contacts to your sequence:
+
+**Method 1: Using the batch script**
+
+```bash
+./batch_process_jobs.sh "Test auto sequencing" \
+  https://jobs.ashbyhq.com/company1/job1 \
+  https://jobs.ashbyhq.com/company2/job2 \
+  https://jobs.ashbyhq.com/company3/job3
+```
+
+**Method 2: Manual batch with --no-confirm flag**
+
+```bash
+# Process multiple URLs without confirmation prompts
+./run_cli.sh analyze <job_url_1> --search-apollo --add-to-sequence "Test auto sequencing" --no-confirm
+./run_cli.sh analyze <job_url_2> --search-apollo --add-to-sequence "Test auto sequencing" --no-confirm
+./run_cli.sh analyze <job_url_3> --search-apollo --add-to-sequence "Test auto sequencing" --no-confirm
+```
+
+**Method 3: Process from a file**
+
+Create a file `job_urls.txt` with one URL per line, then:
+
+```bash
+# Read URLs from file and process each one
+while IFS= read -r url; do
+  [[ "$url" =~ ^#.*$ ]] && continue  # Skip comments
+  [[ -z "$url" ]] && continue         # Skip empty lines
+  ./run_cli.sh analyze "$url" --search-apollo --add-to-sequence "Test auto sequencing" --no-confirm
+done < job_urls.txt
+```
+
+**Workflow:**
+1. Configure your sequence once in Apollo.io (email account, timing, templates)
+2. Run the batch processing with all your job URLs
+3. All contacts automatically added to the sequence
+4. Go to Apollo.io, review all contacts in one place
+5. Manually start the sequence when ready
+
 ## Project Structure
 
 ```
@@ -198,14 +272,15 @@ EmailRecruiters/
 │       ├── core/
 │       │   ├── job_scraper.py      # Jina AI integration
 │       │   ├── role_analyzer.py     # Gemini AI integration
-│       │   └── apollo_search.py     # Apollo.io integration
+│       │   └── apollo_search.py     # Apollo.io integration & sequences
 │       ├── database/
 │       │   ├── models.py           # SQLAlchemy models
 │       │   └── db.py               # Database utilities
 │       └── cli/
 │           ├── main.py             # CLI entry point
 │           ├── analyze.py          # Analyze command
-│           └── search_contacts.py  # Search contacts command
+│           ├── search_contacts.py  # Search contacts command
+│           └── list_sequences.py   # List sequences command
 ├── .env                            # API keys (gitignored)
 ├── requirements.txt                # Dependencies
 ├── run_cli.sh                      # CLI wrapper script

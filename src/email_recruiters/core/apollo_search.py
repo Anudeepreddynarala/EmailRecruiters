@@ -41,6 +41,8 @@ class ApolloClient:
     API_BASE_URL = "https://api.apollo.io"
     PEOPLE_SEARCH_ENDPOINT = "/api/v1/mixed_people/search"
     PEOPLE_ENRICHMENT_ENDPOINT = "/api/v1/people/match"
+    SEQUENCES_SEARCH_ENDPOINT = "/api/v1/emailer_campaigns/search"
+    SEQUENCES_ADD_CONTACTS_ENDPOINT = "/api/v1/emailer_campaigns/{sequence_id}/add_contact_ids"
 
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -347,6 +349,121 @@ class ApolloClient:
             print(f"Successfully enriched {enriched_count}/{len(contacts_to_enrich)} contacts")
 
         return results
+
+    def list_sequences(self) -> List[Dict[str, Any]]:
+        """
+        List all sequences (email campaigns) in the Apollo.io account.
+
+        Returns:
+            List of sequence dictionaries with id, name, and other details
+
+        Raises:
+            Exception: If the API call fails (403 if not using master API key)
+        """
+        url = f"{self.API_BASE_URL}{self.SEQUENCES_SEARCH_ENDPOINT}"
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.api_key
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json={})
+            response.raise_for_status()
+            data = response.json()
+            return data.get("emailer_campaigns", [])
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                raise Exception(
+                    "403 Forbidden: Sequences API requires a master API key. "
+                    "Regular API keys cannot access sequences. "
+                    "Please create a master API key in Apollo.io settings."
+                )
+            raise Exception(f"Apollo.io sequences API error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to connect to Apollo.io sequences API: {str(e)}")
+
+    def add_contacts_to_sequence(
+        self,
+        sequence_id: str,
+        contact_ids: List[str],
+        sequence_name: Optional[str] = None,
+        email_account_id: Optional[str] = None,
+        mailbox_rotation: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Add contacts to an Apollo.io sequence (email campaign).
+
+        IMPORTANT: This only ADDS contacts to the sequence. It does NOT start the campaign.
+        You will need to manually start/resume the sequence in Apollo.io UI.
+
+        Args:
+            sequence_id: The ID of the sequence to add contacts to
+            contact_ids: List of Apollo.io contact IDs (person_id from ApolloContact)
+            sequence_name: Optional name for display purposes
+            email_account_id: Email account ID to use for sending (optional, uses sequence default)
+            mailbox_rotation: Whether to rotate mailboxes (default: False)
+
+        Returns:
+            Dictionary with response data
+
+        Raises:
+            Exception: If the API call fails
+        """
+        url = f"{self.API_BASE_URL}{self.SEQUENCES_ADD_CONTACTS_ENDPOINT.format(sequence_id=sequence_id)}"
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.api_key
+        }
+
+        payload = {
+            "contact_ids": contact_ids,
+            "mailbox_rotation": mailbox_rotation
+        }
+
+        # Add email account ID if provided, otherwise try to use a default
+        # The API requires send_email_from_email_account_id parameter
+        if email_account_id:
+            payload["send_email_from_email_account_id"] = email_account_id
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                raise Exception(
+                    "403 Forbidden: Sequences API requires a master API key. "
+                    "Regular API keys cannot access sequences."
+                )
+            elif e.response.status_code == 422 and "send_email_from_email_account_id" in e.response.text:
+                raise Exception(
+                    "Email account ID required. Please specify an email account to send from. "
+                    "You can find your email account IDs in Apollo.io -> Settings -> Email Accounts. "
+                    "Pass the email_account_id parameter or configure a default in the sequence."
+                )
+            raise Exception(f"Apollo.io sequences API error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to add contacts to sequence: {str(e)}")
+
+    def find_sequence_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a sequence by its name.
+
+        Args:
+            name: The name of the sequence to find
+
+        Returns:
+            Sequence dictionary if found, None otherwise
+        """
+        sequences = self.list_sequences()
+        for seq in sequences:
+            if seq.get("name", "").lower() == name.lower():
+                return seq
+        return None
 
 
 def search_contacts(

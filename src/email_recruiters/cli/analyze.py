@@ -43,7 +43,19 @@ load_dotenv()
     type=int,
     help="Number of top contacts to enrich/unlock emails for (default: 5, requires --search-apollo)"
 )
-def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_contacts_per_role: int, enrich_emails: int):
+@click.option(
+    "--add-to-sequence",
+    type=str,
+    default=None,
+    help="Add contacts to Apollo.io sequence (e.g., 'Test auto sequencing'). ONLY stages contacts, does NOT start campaign."
+)
+@click.option(
+    "--no-confirm",
+    is_flag=True,
+    default=False,
+    help="Skip confirmation prompts when adding to sequence (for batch processing)"
+)
+def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_contacts_per_role: int, enrich_emails: int, add_to_sequence: str, no_confirm: bool):
     """
     Analyze a job posting and suggest relevant roles to contact.
 
@@ -163,6 +175,84 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
 
                 saved_count = save_contacts(job_id, all_contacts)
                 click.echo(f"Saved {saved_count} contacts to database!")
+
+        # Add contacts to sequence if requested
+        if add_to_sequence and apollo_contacts:
+            click.echo()
+            click.echo("=" * 80)
+            click.echo(f"Adding contacts to sequence: '{add_to_sequence}'")
+            click.echo("=" * 80)
+
+            # Collect all contacts
+            all_contacts = []
+            for role_title, contacts in apollo_contacts.items():
+                all_contacts.extend(contacts)
+
+            # Get contact IDs (only contacts with person_id)
+            contact_ids = [c.person_id for c in all_contacts if c.person_id]
+
+            if not contact_ids:
+                click.echo("Warning: No contacts have Apollo.io IDs. Cannot add to sequence.", err=True)
+            else:
+                click.echo(f"Found {len(contact_ids)} contacts with Apollo.io IDs")
+                click.echo()
+
+                # Show confirmation prompt (unless --no-confirm is set)
+                should_add = no_confirm
+
+                if not no_confirm:
+                    click.echo("IMPORTANT: This will ADD contacts to the sequence but NOT start the campaign.")
+                    click.echo("You will need to manually start/resume the sequence in Apollo.io UI.")
+                    click.echo()
+                    should_add = click.confirm(f"Add {len(contact_ids)} contacts to '{add_to_sequence}'?", default=True)
+                else:
+                    click.echo(f"Auto-adding {len(contact_ids)} contacts to sequence (--no-confirm enabled)...")
+
+                if should_add:
+                    try:
+                        apollo_client = ApolloClient()
+
+                        # Find sequence by name
+                        sequence = apollo_client.find_sequence_by_name(add_to_sequence)
+
+                        if not sequence:
+                            click.echo(f"Error: Sequence '{add_to_sequence}' not found.", err=True)
+                            click.echo("Run './run_cli.sh list-sequences' to see available sequences.", err=True)
+                        else:
+                            sequence_id = sequence.get("id")
+                            click.echo(f"Found sequence: {sequence.get('name')} (ID: {sequence_id})")
+
+                            # Add contacts to sequence
+                            result = apollo_client.add_contacts_to_sequence(
+                                sequence_id=sequence_id,
+                                contact_ids=contact_ids,
+                                sequence_name=add_to_sequence
+                            )
+
+                            click.echo()
+                            click.echo(f"✓ Successfully added {len(contact_ids)} contacts to sequence!")
+                            click.echo()
+                            click.echo("Next steps:")
+                            click.echo(f"  1. Log into Apollo.io")
+                            click.echo(f"  2. Go to Sequences -> '{add_to_sequence}'")
+                            click.echo(f"  3. Review contacts and manually start/resume the sequence")
+
+                    except Exception as e:
+                        click.echo(f"Error adding contacts to sequence: {str(e)}", err=True)
+
+                        if "403" in str(e):
+                            click.echo()
+                            click.echo("Note: Sequences API requires a MASTER API key.", err=True)
+                            click.echo("Please create a master API key in Apollo.io settings.", err=True)
+                        elif "Email account ID required" in str(e):
+                            click.echo()
+                            click.echo("To fix this:", err=True)
+                            click.echo("  1. Log into Apollo.io", err=True)
+                            click.echo("  2. Go to Settings -> Email Accounts", err=True)
+                            click.echo("  3. Connect your email account to the sequence", err=True)
+                            click.echo("  4. OR configure a default sending mailbox for the sequence", err=True)
+                else:
+                    click.echo("Cancelled. Contacts were NOT added to sequence.")
 
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)

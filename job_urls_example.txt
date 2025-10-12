@@ -1,0 +1,14 @@
+# Example job URLs file
+# Put one job URL per line
+# Lines starting with # are comments and will be ignored
+
+# Company 1 - Software Engineer role
+https://jobs.ashbyhq.com/company1/job-id-1
+
+# Company 2 - Product Manager role
+https://jobs.lever.co/company2/job-id-2
+
+# Company 3 - Data Scientist role
+https://www.linkedin.com/jobs/view/123456789
+
+# Add more URLs as needed...

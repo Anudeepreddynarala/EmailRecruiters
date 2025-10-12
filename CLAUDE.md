@@ -17,6 +17,7 @@ Active development. Core job analysis feature is implemented and functional.
 - **Company Domain Discovery**: Extracts/infers company domain and LinkedIn URL for easy contact searches
 - **Apollo.io Integration**: Search for actual contacts at companies using Apollo.io's people search API
 - **Email Enrichment**: Automatically unlock real email addresses for top N most relevant contacts
+- **Sequence Integration**: Add contacts to Apollo.io sequences for automated outreach (staging only, manual start required)
 - **Contact Management**: Save and track contacts with status and notes in database
 - **Database Storage**: SQLAlchemy-based storage for analyzed jobs, suggested roles, and contacts
 - **CLI Interface**: Command-line tool for easy job analysis and contact search
@@ -111,9 +112,10 @@ src/email_recruiters/
 
 5. **CLI** (`cli/`)
    - Built with Click framework
-   - Main commands: `analyze <job_url>`, `search-contacts`
-   - Analyze options: `--format json`, `--no-save`, `--search-apollo`, `--max-contacts-per-role`, `--enrich-emails`
+   - Main commands: `analyze <job_url>`, `search-contacts`, `list-sequences`
+   - Analyze options: `--format json`, `--no-save`, `--search-apollo`, `--max-contacts-per-role`, `--enrich-emails`, `--add-to-sequence`
    - Search options: `--job-id`, `--domain`, `--title`, `--save`, `--enrich-emails`
+   - Sequences: List available sequences and add contacts (requires master API key)
 
 ### Data Flow
 
@@ -134,6 +136,14 @@ src/email_recruiters/
 6. Returns contact details (name, email, LinkedIn, title)
 7. Contacts displayed to user
 8. Contacts saved to database (optional, linked to job)
+
+**Sequence Integration Flow (Optional):**
+1. User adds `--add-to-sequence "Sequence Name"` flag
+2. After contacts are found and enriched, user is prompted for confirmation
+3. ApolloClient finds sequence by name using sequences API
+4. Contacts are added to the sequence (staged, NOT started)
+5. User must manually review and start sequence in Apollo.io UI
+6. Requires master API key and email account configuration in sequence
 
 ### Dependencies
 
@@ -203,11 +213,25 @@ Documentation that's out of sync with code creates confusion for:
 
 Always commit documentation updates immediately after feature commits.
 
+## Batch Processing
+
+For processing multiple job URLs and automatically adding contacts to sequences:
+
+```bash
+# Using the provided batch script
+./batch_process_jobs.sh "Sequence Name" url1 url2 url3
+
+# Or use --no-confirm flag to skip prompts
+./run_cli.sh analyze <url> --search-apollo --add-to-sequence "Name" --no-confirm
+```
+
+The `--no-confirm` flag skips confirmation prompts, enabling fully automated batch processing.
+
 ## Notes for Future Development
 
 - Email template system to be added
 - Campaign tracking to be implemented
 - Contact status workflow (new -> contacted -> responded)
 - Email sending integration
-- Bulk contact search and management
 - Analytics and reporting features
+- Batch processing optimizations (parallel processing, better rate limiting)
