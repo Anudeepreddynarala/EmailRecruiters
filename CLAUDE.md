@@ -135,6 +135,47 @@ Edit the `ANALYSIS_PROMPT` in `src/email_recruiters/core/role_analyzer.py`
 2. Update database utilities in `db.py` as needed
 3. Database auto-creates tables on first run
 
+## Documentation Maintenance
+
+**IMPORTANT**: After every commit that adds or modifies functionality, you MUST update the following documentation files:
+
+1. **CLAUDE.md** (this file)
+   - Update Features list if new capabilities added
+   - Update Architecture section for structural changes
+   - Update Common Tasks if new patterns emerge
+   - Keep Dependencies list current
+
+2. **README.md**
+   - Update Features list to match new capabilities
+   - Update example output if CLI output format changes
+   - Add new usage examples for new features
+   - Keep installation/setup instructions accurate
+
+3. **USAGE_EXAMPLES.md**
+   - Add practical examples for new features
+   - Update workflow examples to include new steps
+   - Add troubleshooting tips for new components
+   - Keep search examples current with latest output format
+
+### Documentation Update Checklist
+
+Before committing, verify:
+- [ ] All new features are documented in README.md Features section
+- [ ] Example output in README.md reflects actual CLI output
+- [ ] USAGE_EXAMPLES.md includes practical examples of new features
+- [ ] CLAUDE.md architecture section is updated for structural changes
+- [ ] Any new dependencies are listed in CLAUDE.md
+
+### Why This Matters
+
+Documentation that's out of sync with code creates confusion for:
+- Future contributors (including yourself)
+- Users trying to understand features
+- AI assistants working on the project
+- Anyone reviewing the codebase
+
+Always commit documentation updates immediately after feature commits.
+
 ## Notes for Future Development
 
 - MCP integration planned for people finder functionality
