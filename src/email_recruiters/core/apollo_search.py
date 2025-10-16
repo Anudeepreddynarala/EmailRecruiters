@@ -21,6 +21,7 @@ class ApolloContact:
     company: Optional[str]
     organization_id: Optional[str]
     person_id: Optional[str]
+    contact_id: Optional[str] = None  # ID after saving to user's account
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
@@ -31,7 +32,8 @@ class ApolloContact:
             "linkedin_url": self.linkedin_url,
             "company": self.company,
             "organization_id": self.organization_id,
-            "person_id": self.person_id
+            "person_id": self.person_id,
+            "contact_id": self.contact_id
         }
 
 
@@ -45,6 +47,8 @@ class ApolloClient:
     SEQUENCES_ADD_CONTACTS_ENDPOINT = "/api/v1/emailer_campaigns/{sequence_id}/add_contact_ids"
     CUSTOM_FIELDS_ENDPOINT = "/api/v1/typed_custom_fields"
     UPDATE_CONTACT_ENDPOINT = "/api/v1/contacts/{contact_id}"
+    CREATE_CONTACT_ENDPOINT = "/v1/contacts"
+    EMAIL_ACCOUNTS_ENDPOINT = "/api/v1/email_accounts"
 
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -181,6 +185,62 @@ class ApolloClient:
             raise Exception(f"Apollo.io enrichment error: {e.response.status_code} - {e.response.text}")
         except requests.exceptions.RequestException as e:
             raise Exception(f"Failed to connect to Apollo.io enrichment API: {str(e)}")
+
+    def create_contact(
+        self,
+        email: str,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        title: Optional[str] = None,
+        organization_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Create a new contact in Apollo.io.
+
+        IMPORTANT: Apollo does not deduplicate contacts. If a contact with the same
+        email already exists, a new contact will be created anyway.
+
+        Args:
+            email: Contact's email address
+            first_name: Contact's first name
+            last_name: Contact's last name
+            title: Contact's job title
+            organization_name: Contact's company name
+
+        Returns:
+            Dictionary containing created contact data including person_id
+
+        Raises:
+            Exception: If the API call fails
+        """
+        url = f"{self.API_BASE_URL}{self.CREATE_CONTACT_ENDPOINT}"
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.api_key
+        }
+
+        # Build request payload
+        payload = {"email": email}
+
+        if first_name:
+            payload["first_name"] = first_name
+        if last_name:
+            payload["last_name"] = last_name
+        if title:
+            payload["title"] = title
+        if organization_name:
+            payload["organization_name"] = organization_name
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"Apollo.io create contact error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to create contact in Apollo.io: {str(e)}")
 
     def search_contacts(
         self,
@@ -423,6 +483,7 @@ class ApolloClient:
 
         payload = {
             "contact_ids": contact_ids,
+            "emailer_campaign_id": sequence_id,  # API requires this even though it's in the URL
             "mailbox_rotation": mailbox_rotation
         }
 
@@ -466,6 +527,45 @@ class ApolloClient:
             if seq.get("name", "").lower() == name.lower():
                 return seq
         return None
+
+    def get_email_accounts(self) -> List[str]:
+        """
+        Get list of all email accounts in the Apollo.io account.
+
+        Returns:
+            List of email account IDs (as strings)
+
+        Raises:
+            Exception: If the API call fails (403 if not using master API key)
+        """
+        url = f"{self.API_BASE_URL}{self.EMAIL_ACCOUNTS_ENDPOINT}"
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            # API returns an object with an "email_accounts" array
+            email_accounts = data.get("email_accounts", [])
+
+            # Extract just the IDs from the email account objects
+            return [str(account.get("id")) for account in email_accounts if account.get("id")]
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                raise Exception(
+                    "403 Forbidden: Email accounts API requires a master API key. "
+                    "Regular API keys cannot access email accounts. "
+                    "Please create a master API key in Apollo.io settings."
+                )
+            raise Exception(f"Apollo.io email accounts API error: {e.response.status_code} - {e.response.text}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to connect to Apollo.io email accounts API: {str(e)}")
 
     def get_custom_fields(self) -> List[Dict[str, Any]]:
         """

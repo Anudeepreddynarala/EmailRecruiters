@@ -18,6 +18,7 @@ Active development. Core job analysis feature is implemented and functional.
 - **Apollo.io Integration**: Search for actual contacts at companies using Apollo.io's people search API
 - **Email Enrichment**: Automatically unlock real email addresses for top N most relevant contacts
 - **Sequence Integration**: Add contacts to Apollo.io sequences for automated outreach (staging only, manual start required)
+- **Test Mode**: Create test contacts with custom emails for testing sequence integration without using real Apollo.io search results
 - **Email Personalization**: Automatically populate custom fields (contact name, job title) for personalized emails
 - **Contact Management**: Save and track contacts with status and notes in database
 - **Database Storage**: SQLAlchemy-based storage for analyzed jobs, suggested roles, and contacts
@@ -107,6 +108,7 @@ src/email_recruiters/
    - Prioritizes contacts by role relevance to save API credits
    - Custom fields: updates contacts with job title for email personalization
    - Sequences: adds contacts to sequences and updates custom fields
+   - Contact creation: creates new contacts in Apollo.io for testing sequences with custom emails
 
 4. **Database** (`database/`)
    - SQLite database at `~/.email_recruiters/data.db`
@@ -116,9 +118,10 @@ src/email_recruiters/
 5. **CLI** (`cli/`)
    - Built with Click framework
    - Main commands: `analyze <job_url>`, `search-contacts`, `list-sequences`
-   - Analyze options: `--format json`, `--no-save`, `--search-apollo`, `--max-contacts-per-role`, `--enrich-emails`, `--add-to-sequence`
+   - Analyze options: `--format json`, `--no-save`, `--search-apollo`, `--max-contacts-per-role`, `--enrich-emails`, `--add-to-sequence`, `--test-emails`, `--no-confirm`
    - Search options: `--job-id`, `--domain`, `--title`, `--save`, `--enrich-emails`
    - Sequences: List available sequences and add contacts (requires master API key)
+   - Test mode: Use `--test-emails` to create test contacts for sequence testing
 
 ### Data Flow
 
@@ -149,6 +152,14 @@ src/email_recruiters/
 6. User can use {{first_name}} and {{custom.applied_role}} variables in sequence emails
 7. User must manually review and start sequence in Apollo.io UI
 8. Requires master API key and email account configuration in sequence
+
+**Test Mode Flow (Optional):**
+1. User adds `--test-emails "email1,email2,email3"` flag
+2. System creates test contacts in Apollo.io using provided emails
+3. Each contact gets a person_id from Apollo.io
+4. Test contacts are formatted as ApolloContact objects
+5. Can be combined with `--add-to-sequence` to test sequence integration
+6. Useful for testing sequence configuration without consuming search credits
 
 ### Dependencies
 

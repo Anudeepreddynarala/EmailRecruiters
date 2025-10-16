@@ -10,6 +10,7 @@ A tool for analyzing job postings and identifying relevant roles to contact for 
 - **Apollo.io Integration**: Find actual contacts at companies using Apollo.io's people search API
 - **Email Enrichment**: Automatically unlock real email addresses for top 5 most relevant contacts
 - **Sequence Integration**: Automatically add contacts to Apollo.io email sequences for outreach campaigns
+- **Test Mode**: Create test contacts with custom emails for testing sequence integration
 - **Email Personalization**: Automatically set contact name and job title for personalized emails
 - **Contact Management**: Save and track contacts in local database
 - **Database Storage**: Saves analyzed jobs and contacts for future reference
@@ -221,6 +222,42 @@ Automatically add found contacts to Apollo.io email sequences for automated outr
 4. Run the analyze command with `--add-to-sequence` flag
 
 This ensures you can review contacts before starting any outreach campaign.
+
+### Testing Sequences with Test Emails
+
+You can test your sequence configuration without using real Apollo.io search results or consuming search credits.
+
+**Create test contacts and add to sequence:**
+
+```bash
+./run_cli.sh analyze <job_url> \
+  --test-emails "email1@test.com,email2@test.com,email3@test.com" \
+  --add-to-sequence "Test" \
+  --no-confirm
+```
+
+**What happens:**
+1. Creates test contacts in Apollo.io with the provided emails
+2. Each contact gets a person_id from Apollo.io
+3. Contacts are added to the specified sequence
+4. You can verify the sequence configuration works correctly
+
+**Use cases:**
+- Testing sequence setup before using real contacts
+- Verifying email account configuration
+- Checking custom field updates
+- Testing sequence timing and templates
+
+**Example:**
+
+```bash
+./run_cli.sh analyze https://example.com/job \
+  --test-emails "anudeep@test.com,john@test.com" \
+  --add-to-sequence "Test auto sequencing" \
+  --no-save
+```
+
+**Note:** Test contacts are real contacts in Apollo.io. You may want to delete them after testing or use a dedicated test organization.
 
 ### Email Personalization
 

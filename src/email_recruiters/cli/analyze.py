@@ -55,7 +55,13 @@ load_dotenv()
     default=False,
     help="Skip confirmation prompts when adding to sequence (for batch processing)"
 )
-def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_contacts_per_role: int, enrich_emails: int, add_to_sequence: str, no_confirm: bool):
+@click.option(
+    "--test-emails",
+    type=str,
+    default=None,
+    help="Comma-separated test emails to use instead of Apollo search (e.g., 'email1@test.com,email2@test.com')"
+)
+def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_contacts_per_role: int, enrich_emails: int, add_to_sequence: str, no_confirm: bool, test_emails: str):
     """
     Analyze a job posting and suggest relevant roles to contact.
 
@@ -121,9 +127,73 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
         elif format == "json":
             _display_json_format(job, roles)
 
-        # Search Apollo.io if requested
+        # Handle test emails if provided
         apollo_contacts = {}
-        if search_apollo:
+        if test_emails:
+            click.echo()
+            click.echo("=" * 80)
+            click.echo("TEST MODE: Creating test contacts in Apollo.io")
+            click.echo("=" * 80)
+
+            # Parse comma-separated emails
+            email_list = [email.strip() for email in test_emails.split(",") if email.strip()]
+
+            if not email_list:
+                click.echo("Error: No valid emails provided in --test-emails", err=True)
+            else:
+                click.echo(f"Creating {len(email_list)} test contacts...")
+                click.echo()
+
+                try:
+                    apollo_client = ApolloClient()
+                    test_contacts = []
+
+                    for i, email in enumerate(email_list, 1):
+                        click.echo(f"  Creating contact {i}: {email}")
+
+                        # Create contact in Apollo.io
+                        result = apollo_client.create_contact(
+                            email=email,
+                            first_name=f"Test",
+                            last_name=f"Contact {i}",
+                            title="Test Contact",
+                            organization_name="Test Organization"
+                        )
+
+                        # Extract contact info from response
+                        contact_data = result.get("contact", {})
+                        person_id = contact_data.get("id")
+
+                        # Create ApolloContact object
+                        from ..core.apollo_search import ApolloContact
+                        contact = ApolloContact(
+                            name=f"Test Contact {i}",
+                            title="Test Contact",
+                            email=email,
+                            linkedin_url=None,
+                            company="Test Organization",
+                            organization_id=None,
+                            person_id=person_id
+                        )
+
+                        test_contacts.append(contact)
+                        click.echo(f"    ✓ Created with ID: {person_id}")
+
+                    click.echo()
+                    click.echo(f"✓ Successfully created {len(test_contacts)} test contacts!")
+
+                    # Store contacts in the same format as Apollo search
+                    if test_contacts:
+                        apollo_contacts["Test Contacts"] = test_contacts
+
+                    if format == "text":
+                        _display_apollo_contacts(apollo_contacts)
+
+                except Exception as e:
+                    click.echo(f"Error creating test contacts: {str(e)}", err=True)
+
+        # Search Apollo.io if requested (skip if test emails provided)
+        elif search_apollo:
             if not company_domain:
                 click.echo()
                 click.echo("Warning: Cannot search Apollo.io - company domain not found", err=True)
@@ -141,6 +211,41 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
 
                     total_found = sum(len(contacts) for contacts in apollo_contacts.values())
                     click.echo(f"Found {total_found} contacts across {len(apollo_contacts)} roles!")
+                    click.echo()
+
+                    # Save contacts to user's Apollo account to get contact_ids
+                    click.echo("Saving contacts to your Apollo account...")
+                    saved_count = 0
+                    for role_title, contacts in apollo_contacts.items():
+                        for contact in contacts:
+                            # Only save contacts with valid emails
+                            if contact.email and contact.email != "email_not_unlocked@domain.com":
+                                try:
+                                    # Parse name into first and last
+                                    name_parts = contact.name.split(' ', 1)
+                                    first_name = name_parts[0] if len(name_parts) > 0 else contact.name
+                                    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+                                    # Create contact in user's account
+                                    result = apollo_client.create_contact(
+                                        email=contact.email,
+                                        first_name=first_name,
+                                        last_name=last_name,
+                                        title=contact.title,
+                                        organization_name=contact.company
+                                    )
+
+                                    # Extract contact_id from response
+                                    contact_data = result.get("contact", {})
+                                    contact.contact_id = contact_data.get("id")
+
+                                    if contact.contact_id:
+                                        saved_count += 1
+                                except Exception as e:
+                                    # Log error but continue with other contacts
+                                    click.echo(f"  Warning: Failed to save {contact.name}: {str(e)}", err=True)
+
+                    click.echo(f"✓ Saved {saved_count}/{total_found} contacts to your account")
                     click.echo()
 
                     if format == "text":
@@ -188,11 +293,11 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
             for role_title, contacts in apollo_contacts.items():
                 all_contacts.extend(contacts)
 
-            # Get contact IDs (only contacts with person_id)
-            contact_ids = [c.person_id for c in all_contacts if c.person_id]
+            # Get contact IDs (use contact_id if available, fallback to person_id for test contacts)
+            contact_ids = [c.contact_id or c.person_id for c in all_contacts if (c.contact_id or c.person_id)]
 
             if not contact_ids:
-                click.echo("Warning: No contacts have Apollo.io IDs. Cannot add to sequence.", err=True)
+                click.echo("Warning: No contacts have saved to your account. Cannot add to sequence.", err=True)
             else:
                 click.echo(f"Found {len(contact_ids)} contacts with Apollo.io IDs")
                 click.echo()
@@ -227,8 +332,10 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
                             click.echo("Updating contacts with job title for email personalization...")
                             updated_count = 0
                             for contact in all_contacts:
-                                if contact.person_id and job.title:
-                                    if apollo_client.update_contact_with_job_title(contact.person_id, job.title):
+                                # Use contact_id if available, fallback to person_id for test contacts
+                                contact_id = contact.contact_id or contact.person_id
+                                if contact_id and job.title:
+                                    if apollo_client.update_contact_with_job_title(contact_id, job.title):
                                         updated_count += 1
 
                             if updated_count > 0:
@@ -241,11 +348,27 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
 
                             click.echo()
 
+                            # Try to fetch email accounts automatically
+                            email_account_id = None
+                            try:
+                                click.echo("Fetching email accounts...")
+                                email_accounts = apollo_client.get_email_accounts()
+                                if email_accounts:
+                                    email_account_id = str(email_accounts[0])
+                                    click.echo(f"Using email account ID: {email_account_id}")
+                                else:
+                                    click.echo("Warning: No email accounts found")
+                            except Exception as e:
+                                click.echo(f"Warning: Could not fetch email accounts: {str(e)}")
+
+                            click.echo()
+
                             # Add contacts to sequence
                             result = apollo_client.add_contacts_to_sequence(
                                 sequence_id=sequence_id,
                                 contact_ids=contact_ids,
-                                sequence_name=add_to_sequence
+                                sequence_name=add_to_sequence,
+                                email_account_id=email_account_id
                             )
 
                             click.echo()

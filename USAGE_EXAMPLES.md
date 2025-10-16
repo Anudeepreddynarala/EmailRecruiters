@@ -34,6 +34,50 @@
 ./run_cli.sh analyze <job_url> --no-save
 ```
 
+### Testing Sequence Integration
+
+Test your Apollo.io sequence configuration with custom test emails:
+
+```bash
+# Test with your own email addresses
+./run_cli.sh analyze <job_url> \
+  --test-emails "email1@test.com,email2@test.com,email3@test.com" \
+  --add-to-sequence "Test" \
+  --no-confirm \
+  --no-save
+```
+
+**What this does:**
+1. Creates test contacts in Apollo.io with your specified emails
+2. Adds them to the specified sequence
+3. Allows you to verify sequence setup without using real contacts
+
+**Use cases:**
+- Testing sequence configuration before production use
+- Verifying email account setup
+- Checking custom field population
+- Testing email templates and timing
+
+**Example output:**
+```
+TEST MODE: Creating test contacts in Apollo.io
+================================================================================
+Creating 3 test contacts...
+
+  Creating contact 1: test1@example.com
+    ✓ Created with ID: 68ec3bf5bf5cf100214c43ac
+  Creating contact 2: test2@example.com
+    ✓ Created with ID: 68ec3bf52f8d0c001d85943a
+  Creating contact 3: test3@example.com
+    ✓ Created with ID: 68ec3bf55c1bb5001995e9ee
+
+✓ Successfully created 3 test contacts!
+Found sequence: Test (ID: 68e836733037a40021b50dab)
+✓ Successfully added 3 contacts to sequence!
+```
+
+**Note:** Test contacts are real contacts in Apollo.io. Delete them after testing or use a dedicated test workspace.
+
 ## What You'll Get
 
 For each job posting, the tool provides:
@@ -194,6 +238,25 @@ Keep a spreadsheet of:
 ### Issue: "Jina API error"
 - **Solution**: Verify your JINA_API_KEY is correct
 - Check Jina API status at: https://jina.ai/
+
+### Issue: "Email account ID required" when adding to sequence
+- **Solution**: Configure an email account for your sequence in Apollo.io
+- Go to Apollo.io → Settings → Email Accounts
+- Connect your email account
+- Assign it to the sequence
+
+### Issue: "Custom field 'Applied Role' not found"
+- **Solution**: Create the custom field in Apollo.io
+- Go to Settings → Custom Fields
+- Create Contact Custom Field
+- Name: `Applied Role`
+- Type: Text
+
+### Issue: Test contacts not appearing in sequence
+- **Solution**: Check sequence configuration
+- Ensure sequence is not paused
+- Verify email account is connected
+- Check that contacts were successfully created (look for person_id in output)
 
 ## Need Help?
 
