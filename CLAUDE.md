@@ -23,6 +23,42 @@ Active development. Core job analysis feature is implemented and functional.
 - **Contact Management**: Save and track contacts with status and notes in database
 - **Database Storage**: SQLAlchemy-based storage for analyzed jobs, suggested roles, and contacts
 - **CLI Interface**: Command-line tool for easy job analysis and contact search
+- **Configuration Management**: Centralized config system for API keys and user preferences
+- **Interactive Setup**: `/setup` slash command for guided onboarding
+- **Batch Processing**: `/add-jobs` slash command for processing multiple URLs
+
+## User Onboarding
+
+### First-Time Setup
+
+New users should run the `/setup` slash command for interactive configuration:
+
+1. **API Key Validation**
+   - Checks for required keys (Apollo, Gemini, Jina)
+   - Guides user to add missing keys to `.env`
+
+2. **Sequence Selection**
+   - Fetches available sequences from Apollo.io
+   - Uses fuzzy matching for user-friendly selection
+   - Verifies email account configuration
+
+3. **Configuration Storage**
+   - Saves to `~/.email_recruiters/config.env`
+   - Stores: sequence name, ID, email account ID
+   - Sets defaults for batch processing
+
+### Batch Processing Workflow
+
+After setup, users can use `/add-jobs` for efficient batch processing:
+
+```bash
+/add-jobs
+# Prompts for multiple job URLs
+# Processes each URL automatically
+# Adds all contacts to configured sequence
+```
+
+This provides a streamlined experience for processing 10+ job postings at once.
 
 ## Development Setup
 
@@ -83,8 +119,14 @@ src/email_recruiters/
 │   ├── main.py             # CLI entry point
 │   ├── analyze.py          # Analyze command implementation
 │   └── search_contacts.py  # Search contacts command
+├── config.py               # Configuration management (API keys, sequence settings)
 ├── templates/              # Future: Email templates
 └── mcp/                    # Future: MCP integration
+
+.claude/commands/
+├── setup.md                # Interactive setup wizard slash command
+├── add-jobs.md             # Batch processing slash command
+└── [other git commands]    # Git workflow commands
 ```
 
 ### Key Components
@@ -123,6 +165,19 @@ src/email_recruiters/
    - Sequences: List available sequences and add contacts (requires master API key)
    - Test mode: Use `--test-emails` to create test contacts for sequence testing
 
+6. **Configuration Management** (`config.py`)
+   - Centralized configuration loading/saving
+   - Stores user preferences in `~/.email_recruiters/config.env`
+   - API key validation functions
+   - Fuzzy sequence name matching
+   - Default settings management
+   - Functions: `load_config()`, `save_config()`, `get_sequence_config()`, `validate_apollo_key()`, `fuzzy_match_sequence()`
+
+7. **Slash Commands** (`.claude/commands/`)
+   - `/setup` - Interactive onboarding wizard for first-time users
+   - `/add-jobs` - Batch process multiple job URLs at once
+   - Provides user-friendly alternatives to CLI commands
+
 ### Data Flow
 
 **Job Analysis Flow:**
@@ -160,6 +215,18 @@ src/email_recruiters/
 4. Test contacts are formatted as ApolloContact objects
 5. Can be combined with `--add-to-sequence` to test sequence integration
 6. Useful for testing sequence configuration without consuming search credits
+
+**Batch Processing Flow (`/add-jobs` command):**
+1. Check if user has run `/setup` (validate configuration exists)
+2. Load sequence configuration from `~/.email_recruiters/config.env`
+3. Prompt user for multiple job URLs (one per line or comma-separated)
+4. Parse and validate URLs
+5. For each URL:
+   - Run full analyze workflow (scrape → analyze → search → enrich → save → add to sequence)
+   - Display progress: "Processing job X of Y"
+   - Handle errors gracefully, continue with remaining jobs
+6. Display summary report (jobs processed, contacts found, sequence name)
+7. Remind user to review and start sequence in Apollo.io
 
 ### Dependencies
 

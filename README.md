@@ -16,7 +16,62 @@ A tool for analyzing job postings and identifying relevant roles to contact for 
 - **Database Storage**: Saves analyzed jobs and contacts for future reference
 - **CLI Interface**: Easy-to-use command-line tool
 
-## Setup
+## Getting Started (Quick Setup)
+
+For new users, we provide an interactive setup wizard and batch processing command:
+
+### Step 1: Initial Setup
+
+Run the setup wizard to configure your API keys and default sequence:
+
+```bash
+/setup
+```
+
+The wizard will:
+1. Check for required API keys (Apollo.io, Gemini, Jina)
+2. Help you select a default Apollo.io sequence for job applications
+3. Verify email account configuration
+4. Save your preferences for future use
+
+### Step 2: Batch Process Job URLs
+
+Once configured, use the `/add-jobs` command to process multiple job URLs at once:
+
+```bash
+/add-jobs
+```
+
+Then paste your job URLs (one per line or comma-separated). The tool will:
+1. Analyze each job posting
+2. Find relevant contacts at each company
+3. Enrich top 5 contacts with real emails
+4. Add all contacts to your configured sequence automatically
+
+**Example:**
+```
+Enter job URLs (one per line, or comma-separated):
+https://jobs.ashbyhq.com/company1/job1
+https://jobs.ashbyhq.com/company2/job2,https://jobs.ashbyhq.com/company3/job3
+
+Processing job 1 of 3...
+✓ Added 5 contacts from Company1 - Senior Engineer
+
+Processing job 2 of 3...
+✓ Added 4 contacts from Company2 - Product Manager
+
+Processing job 3 of 3...
+✓ Added 6 contacts from Company3 - Data Scientist
+
+Summary:
+  Jobs processed: 3
+  Contacts found: 15
+  Added to sequence: Job Application - Test
+
+Next: Go to Apollo.io to review and start your sequence!
+```
+
+## Manual Setup (Advanced)
 
 ### 1. Clone the repository and navigate to the project directory
 
