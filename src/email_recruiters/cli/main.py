@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from .analyze import analyze
 from .search_contacts import search_contacts
 from .list_sequences import list_sequences
+from .setup_wizard import setup_wizard
+from .batch_add import batch_add
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +29,8 @@ def cli():
 cli.add_command(analyze)
 cli.add_command(search_contacts)
 cli.add_command(list_sequences)
+cli.add_command(setup_wizard)
+cli.add_command(batch_add)
 
 
 if __name__ == "__main__":
