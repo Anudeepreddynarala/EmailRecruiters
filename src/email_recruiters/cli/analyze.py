@@ -340,10 +340,10 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
 
                             if updated_count > 0:
                                 click.echo(f"✓ Updated {updated_count}/{len(all_contacts)} contacts with job title: '{job.title}'")
-                                click.echo("  (You can now use {{first_name}} and {{custom.applied_role}} in your sequence emails)")
+                                click.echo("  (You can now use {{first_name}} and {{custom.job_posting_title}} in your sequence emails)")
                             else:
                                 click.echo("⚠ Warning: Could not update contacts with job title.")
-                                click.echo("  Make sure you have created a custom field named 'Applied Role' in Apollo.io")
+                                click.echo("  Make sure you have created a custom field named 'Job_Posting_Title' in Apollo.io")
                                 click.echo("  (Settings -> Custom Fields -> Create Contact Custom Field)")
 
                             click.echo()
@@ -381,7 +381,7 @@ def analyze(job_url: str, save: bool, format: str, search_apollo: bool, max_cont
                             click.echo()
                             click.echo("Email personalization:")
                             click.echo(f"  - Use {{{{first_name}}}} for the contact's first name")
-                            click.echo(f"  - Use {{{{custom.applied_role}}}} for the job title: '{job.title}'")
+                            click.echo(f"  - Use {{{{custom.job_posting_title}}}} for the job title: '{job.title}'")
 
                     except Exception as e:
                         click.echo(f"Error adding contacts to sequence: {str(e)}", err=True)

@@ -669,7 +669,7 @@ class ApolloClient:
         self,
         contact_id: str,
         job_title: str,
-        custom_field_name: str = "Applied Role"
+        custom_field_name: str = "Job_Posting_Title"
     ) -> bool:
         """
         Update a contact with the job title they're applying for.
@@ -677,7 +677,7 @@ class ApolloClient:
         Args:
             contact_id: Apollo.io contact ID
             job_title: The job title to set
-            custom_field_name: Name of the custom field to use (default: "Applied Role")
+            custom_field_name: Name of the custom field to use (default: "Job_Posting_Title")
 
         Returns:
             True if successful, False otherwise

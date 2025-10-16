@@ -173,7 +173,16 @@ def batch_add():
                         except Exception:
                             pass  # Continue with other contacts
 
-            # Step 5: Add to sequence
+            # Step 5: Update contacts with job posting title for personalization
+            if saved_count > 0 and job.title:
+                for contact in all_contacts:
+                    if contact.contact_id:
+                        try:
+                            apollo_client.update_contact_with_job_title(contact.contact_id, job.title)
+                        except Exception:
+                            pass  # Continue with other contacts
+
+            # Step 6: Add to sequence
             if saved_count > 0:
                 contact_ids = [c.contact_id for c in all_contacts if c.contact_id]
 
